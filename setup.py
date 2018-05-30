@@ -47,4 +47,11 @@ setup(
     test_spatial_plugin = ckanext.spatial.tests.test_plugin.plugin:TestSpatialPlugin
 
 	""",
+	message_extractors={
+		'ckanext': [
+			('**.py', 'python', None),
+			('**.js', 'javascript', None),
+			('**/templates/**.html', 'ckan', None),
+		],
+	}
 )
