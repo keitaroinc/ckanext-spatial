@@ -8,6 +8,7 @@ from pylons import config
 from ckan import plugins as p
 
 from ckan.lib.helpers import json
+from ckan.lib.plugins import DefaultTranslation
 
 
 def check_geoalchemy_requirement():
@@ -59,12 +60,14 @@ def package_error_summary(error_dict):
             summary[p.toolkit._(prettify(key))] = error[0]
     return summary
 
-class SpatialMetadata(p.SingletonPlugin):
+class SpatialMetadata(p.SingletonPlugin, DefaultTranslation):
 
     p.implements(p.IPackageController, inherit=True)
     p.implements(p.IConfigurable, inherit=True)
     p.implements(p.IConfigurer, inherit=True)
     p.implements(p.ITemplateHelpers, inherit=True)
+    p.implements(p.ITranslation)
+
 
     def configure(self, config):
         from ckanext.spatial.model.package_extent import setup as setup_model
@@ -150,11 +153,13 @@ class SpatialMetadata(p.SingletonPlugin):
                 'get_common_map_config' : spatial_helpers.get_common_map_config,
                 }
 
-class SpatialQuery(p.SingletonPlugin):
+class SpatialQuery(p.SingletonPlugin, DefaultTranslation):
 
     p.implements(p.IRoutes, inherit=True)
     p.implements(p.IPackageController, inherit=True)
     p.implements(p.IConfigurable, inherit=True)
+    p.implements(p.ITranslation)
+
 
     search_backend = None
 
@@ -390,7 +395,7 @@ class SpatialQuery(p.SingletonPlugin):
             search_results['results'] = pkgs
         return search_results
 
-class HarvestMetadataApi(p.SingletonPlugin):
+class HarvestMetadataApi(p.SingletonPlugin, DefaultTranslation):
     '''
     Harvest Metadata API
     (previously called "InspireApi")
@@ -399,6 +404,8 @@ class HarvestMetadataApi(p.SingletonPlugin):
     styled to view in a web browser.
     '''
     p.implements(p.IRoutes)
+    p.implements(p.ITranslation)
+
 
     def before_map(self, route_map):
         controller = "ckanext.spatial.controllers.api:HarvestMetadataApiController"
