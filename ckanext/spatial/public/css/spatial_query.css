@@ -90,3 +90,7 @@
 .dataset-map-expanded .wrapper {
   margin-top: 383px;
 }
+#dataset-map-attribution a {
+  color: inherit;
+  text-decoration: underline;
+}
