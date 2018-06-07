@@ -13,7 +13,7 @@ e.g.
 #}
 <section id="dataset-map" class="module module-narrow module-shallow">
   <h2 class="module-heading">
-    <i class="{% if h.ckan_version() >= "2.8" %}fa fa-globe{% else %}fa fa-globe{% endif %}"></i>
+    <i class="{% if h.ckan_version() >= "2.8" %}fa fa-globe{% else %}icon-medium icon-globe{% endif %}"></i>
     {{ _('Filter by location') }}
     <a href="{{ h.remove_url_param(['ext_bbox','ext_prev_extent', 'ext_location']) }}" class="action">{{ _('Clear') }}</a>
   </h2>
