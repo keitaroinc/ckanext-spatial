@@ -19,8 +19,8 @@ this.ckan.module('spatial-query', function ($, _) {
     template: {
       buttons: [
         '<div id="dataset-map-edit-buttons">',
-        '<a href="javascript:;" class="btn cancel">' + _('Cancel').fetch() + '</a> ',
-        '<a href="javascript:;" class="btn apply disabled">' + _('Apply').fetch() + '</a>',
+        '<a href="javascript:;" class="btn cancel"></a> ',
+        '<a href="javascript:;" class="btn apply disabled"></a>',
         '</div>'
       ].join('')
     },
@@ -122,6 +122,9 @@ this.ckan.module('spatial-query', function ($, _) {
 
       // Setup the expanded buttons
       buttons = $(module.template.buttons).insertBefore('#dataset-map-attribution');
+
+      $('.cancel', buttons).text(this._('Cancel'))
+      $('.apply', buttons).text(this._('Apply'))
 
       // Handle the cancel expanded action
       $('.cancel', buttons).on('click', function() {
