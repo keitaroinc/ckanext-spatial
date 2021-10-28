@@ -4,6 +4,7 @@ from ckan.lib.base import BaseController, c, request, \
     response, render, abort
 
 from ckan.model import Package
+from ckan.lib.plugins import toolkit
 
 
 class ViewController(BaseController):
@@ -12,7 +13,7 @@ class ViewController(BaseController):
         # check if package exists
         c.pkg = Package.get(id)
         if c.pkg is None:
-            abort(404, 'Dataset not found')
+            abort(404, toolkit._('Dataset not found'))
 
         for res in c.pkg.resources:
             if res.format.lower() == 'wms':
@@ -20,7 +21,7 @@ class ViewController(BaseController):
                     if '?' not in res.url else res.url.split('?')[0]
                 break
         if not c.wms_url:
-            abort(400, 'This dataset does not have a WMS resource')
+            abort(400, toolkit._('This dataset does not have a WMS resource'))
 
         return render('ckanext/spatial/wms_preview.html')
 
