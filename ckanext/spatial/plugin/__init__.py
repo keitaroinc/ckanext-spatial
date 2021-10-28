@@ -1,14 +1,28 @@
 import os
 import re
+import sys
 import mimetypes
 from logging import getLogger
 
-from pylons import config
+import six
+import ckantoolkit as tk
 
 from ckan import plugins as p
 
 from ckan.lib.helpers import json
 from ckan.lib.plugins import DefaultTranslation
+
+if tk.check_ckan_version(min_version="2.9.0"):
+    from ckanext.spatial.plugin.flask_plugin import (
+        SpatialQueryMixin, HarvestMetadataApiMixin
+    )
+else:
+    from ckanext.spatial.plugin.pylons_plugin import (
+        SpatialQueryMixin, HarvestMetadataApiMixin
+    )
+
+
+config = tk.config
 
 
 def check_geoalchemy_requirement():
@@ -23,7 +37,7 @@ def check_geoalchemy_requirement():
            'For more details see the "Troubleshooting" section of the ' +
            'install documentation')
 
-    if p.toolkit.check_ckan_version(min_version='2.3'):
+    if tk.check_ckan_version(min_version='2.3'):
         try:
             import geoalchemy2
         except ImportError:
@@ -45,19 +59,19 @@ def package_error_summary(error_dict):
     def prettify(field_name):
         field_name = re.sub('(?<!\w)[Uu]rl(?!\w)', 'URL',
                             field_name.replace('_', ' ').capitalize())
-        return p.toolkit._(field_name.replace('_', ' '))
+        return tk._(field_name.replace('_', ' '))
 
     summary = {}
-    for key, error in error_dict.iteritems():
+    for key, error in error_dict.items():
         if key == 'resources':
-            summary[p.toolkit._('Resources')] = p.toolkit._(
+            summary[tk._('Resources')] = tk._(
                 'Package resource(s) invalid')
         elif key == 'extras':
-            summary[p.toolkit._('Extras')] = p.toolkit._('Missing Value')
+            summary[tk._('Extras')] = tk._('Missing Value')
         elif key == 'extras_validation':
-            summary[p.toolkit._('Extras')] = error[0]
+            summary[tk._('Extras')] = error[0]
         else:
-            summary[p.toolkit._(prettify(key))] = error[0]
+            summary[tk._(prettify(key))] = error[0]
     return summary
 
 class SpatialMetadata(p.SingletonPlugin, DefaultTranslation):
@@ -72,7 +86,7 @@ class SpatialMetadata(p.SingletonPlugin, DefaultTranslation):
     def configure(self, config):
         from ckanext.spatial.model.package_extent import setup as setup_model
 
-        if not p.toolkit.asbool(config.get('ckan.spatial.testing', 'False')):
+        if not tk.asbool(config.get('ckan.spatial.testing', 'False')):
             log.debug('Setting up the spatial model')
             setup_model()
 
@@ -80,9 +94,9 @@ class SpatialMetadata(p.SingletonPlugin, DefaultTranslation):
         ''' Set up the resource library, public directory and
         template directory for all the spatial extensions
         '''
-        p.toolkit.add_public_directory(config, 'public')
-        p.toolkit.add_template_directory(config, 'templates')
-        p.toolkit.add_resource('public', 'ckanext-spatial')
+        tk.add_public_directory(config, '../public')
+        tk.add_template_directory(config, '../templates')
+        tk.add_resource('../public', 'ckanext-spatial')
 
         # Add media types for common extensions not included in the mimetypes
         # module
@@ -113,24 +127,24 @@ class SpatialMetadata(p.SingletonPlugin, DefaultTranslation):
                     try:
                         log.debug('Received: %r' % extra.value)
                         geometry = json.loads(extra.value)
-                    except ValueError,e:
-                        error_dict = {'spatial':[u'Error decoding JSON object: %s' % str(e)]}
-                        raise p.toolkit.ValidationError(error_dict, error_summary=package_error_summary(error_dict))
-                    except TypeError,e:
-                        error_dict = {'spatial':[u'Error decoding JSON object: %s' % str(e)]}
-                        raise p.toolkit.ValidationError(error_dict, error_summary=package_error_summary(error_dict))
+                    except ValueError as e:
+                        error_dict = {'spatial':[u'Error decoding JSON object: %s' % six.text_type(e)]}
+                        raise tk.ValidationError(error_dict, error_summary=package_error_summary(error_dict))
+                    except TypeError as e:
+                        error_dict = {'spatial':[u'Error decoding JSON object: %s' % six.text_type(e)]}
+                        raise tk.ValidationError(error_dict, error_summary=package_error_summary(error_dict))
 
                     try:
                         save_package_extent(package.id,geometry)
 
-                    except ValueError,e:
-                        error_dict = {'spatial':[u'Error creating geometry: %s' % str(e)]}
-                        raise p.toolkit.ValidationError(error_dict, error_summary=package_error_summary(error_dict))
-                    except Exception, e:
+                    except ValueError as e:
+                        error_dict = {'spatial':[u'Error creating geometry: %s' % six.text_type(e)]}
+                        raise tk.ValidationError(error_dict, error_summary=package_error_summary(error_dict))
+                    except Exception as e:
                         if bool(os.getenv('DEBUG')):
                             raise
-                        error_dict = {'spatial':[u'Error: %s' % str(e)]}
-                        raise p.toolkit.ValidationError(error_dict, error_summary=package_error_summary(error_dict))
+                        error_dict = {'spatial':[u'Error: %s' % six.text_type(e)]}
+                        raise tk.ValidationError(error_dict, error_summary=package_error_summary(error_dict))
 
                 elif (extra.state == 'active' and not extra.value) or extra.state == 'deleted':
                     # Delete extent from table
@@ -153,9 +167,14 @@ class SpatialMetadata(p.SingletonPlugin, DefaultTranslation):
                 'get_common_map_config' : spatial_helpers.get_common_map_config,
                 }
 
-class SpatialQuery(p.SingletonPlugin, DefaultTranslation):
+    # i18n direction
+    def i18n_directory(self):
+        extension_module_name = '.'.join(self.__module__.split('.')[:2])
+        module = sys.modules[extension_module_name]
+        return os.path.join(os.path.dirname(module.__file__), 'i18n')
 
-    p.implements(p.IRoutes, inherit=True)
+class SpatialQuery(SpatialQueryMixin, p.SingletonPlugin, DefaultTranslation):
+
     p.implements(p.IPackageController, inherit=True)
     p.implements(p.IConfigurable, inherit=True)
     p.implements(p.ITranslation)
@@ -166,17 +185,10 @@ class SpatialQuery(p.SingletonPlugin, DefaultTranslation):
     def configure(self, config):
 
         self.search_backend = config.get('ckanext.spatial.search_backend', 'postgis')
-        if self.search_backend != 'postgis' and not p.toolkit.check_ckan_version('2.0.1'):
+        if self.search_backend != 'postgis' and not tk.check_ckan_version('2.0.1'):
             msg = 'The Solr backends for the spatial search require CKAN 2.0.1 or higher. ' + \
                   'Please upgrade CKAN or select the \'postgis\' backend.'
-            raise p.toolkit.CkanVersionException(msg)
-
-    def before_map(self, map):
-
-        map.connect('api_spatial_query', '/api/2/search/{register:dataset|package}/geo',
-            controller='ckanext.spatial.controllers.api:ApiController',
-            action='spatial_query')
-        return map
+            raise tk.CkanVersionException(msg)
 
     def before_index(self, pkg_dict):
         import shapely
@@ -185,7 +197,7 @@ class SpatialQuery(p.SingletonPlugin, DefaultTranslation):
         if pkg_dict.get('extras_spatial', None) and self.search_backend in ('solr', 'solr-spatial-field'):
             try:
                 geometry = json.loads(pkg_dict['extras_spatial'])
-            except ValueError, e:
+            except ValueError as e:
                 log.error('Geometry not valid GeoJSON, not indexing')
                 return pkg_dict
 
@@ -239,6 +251,7 @@ class SpatialQuery(p.SingletonPlugin, DefaultTranslation):
 
 
         return pkg_dict
+        
 
     def before_search(self, search_params):
         from ckanext.spatial.lib import  validate_bbox
@@ -335,7 +348,7 @@ class SpatialQuery(p.SingletonPlugin, DefaultTranslation):
         # Note: This will be deprecated at some point in favour of the
         # Solr 4 spatial sorting capabilities
         if search_params.get('sort') == 'spatial desc' and \
-           p.toolkit.asbool(config.get('ckanext.spatial.use_postgis_sorting', 'False')):
+           tk.asbool(config.get('ckanext.spatial.use_postgis_sorting', 'False')):
             if search_params['q'] or search_params['fq']:
                 raise SearchError('Spatial ranking cannot be mixed with other search parameters')
                 # ...because it is too inefficient to use SOLR to filter
@@ -370,7 +383,8 @@ class SpatialQuery(p.SingletonPlugin, DefaultTranslation):
             bbox_query_ids = [extent.package_id for extent in extents]
 
             q = search_params.get('q','').strip() or '""'
-            new_q = '%s AND ' % q if q else ''
+            # Note: `"" AND` query doesn't work in github ci
+            new_q = '%s AND ' % q if q and q != '""' else ''
             new_q += '(%s)' % ' OR '.join(['id:%s' % id for id in bbox_query_ids])
 
             search_params['q'] = new_q
@@ -382,9 +396,8 @@ class SpatialQuery(p.SingletonPlugin, DefaultTranslation):
 
         # Note: This will be deprecated at some point in favour of the
         # Solr 4 spatial sorting capabilities
-
         if search_params.get('extras', {}).get('ext_spatial') and \
-           p.toolkit.asbool(config.get('ckanext.spatial.use_postgis_sorting', 'False')):
+           tk.asbool(config.get('ckanext.spatial.use_postgis_sorting', 'False')):
             # Apply the spatial sort
             querier = PackageSearchQuery()
             pkgs = []
@@ -395,7 +408,14 @@ class SpatialQuery(p.SingletonPlugin, DefaultTranslation):
             search_results['results'] = pkgs
         return search_results
 
-class HarvestMetadataApi(p.SingletonPlugin, DefaultTranslation):
+    # i18n direction
+    def i18n_directory(self):
+        extension_module_name = '.'.join(self.__module__.split('.')[:2])
+        module = sys.modules[extension_module_name]
+        return os.path.join(os.path.dirname(module.__file__), 'i18n')
+
+
+class HarvestMetadataApi(HarvestMetadataApiMixin, p.SingletonPlugin, DefaultTranslation):
     '''
     Harvest Metadata API
     (previously called "InspireApi")
@@ -403,33 +423,9 @@ class HarvestMetadataApi(p.SingletonPlugin, DefaultTranslation):
     A way for a user to view the harvested metadata XML, either as a raw file or
     styled to view in a web browser.
     '''
-    p.implements(p.IRoutes)
-    p.implements(p.ITranslation)
+    # i18n direction
+    def i18n_directory(self):
+        extension_module_name = '.'.join(self.__module__.split('.')[:2])
+        module = sys.modules[extension_module_name]
+        return os.path.join(os.path.dirname(module.__file__), 'i18n')
 
-
-    def before_map(self, route_map):
-        controller = "ckanext.spatial.controllers.api:HarvestMetadataApiController"
-
-        # Showing the harvest object content is an action of the default
-        # harvest plugin, so just redirect there
-        route_map.redirect('/api/2/rest/harvestobject/{id:.*}/xml',
-            '/harvest/object/{id}',
-            _redirect_code='301 Moved Permanently')
-
-        route_map.connect('/harvest/object/{id}/original', controller=controller,
-                          action='display_xml_original')
-
-        route_map.connect('/harvest/object/{id}/html', controller=controller,
-                          action='display_html')
-        route_map.connect('/harvest/object/{id}/html/original', controller=controller,
-                          action='display_html_original')
-
-        # Redirect old URL to a nicer and unversioned one
-        route_map.redirect('/api/2/rest/harvestobject/:id/html',
-           '/harvest/object/{id}/html',
-            _redirect_code='301 Moved Permanently')
-
-        return route_map
-
-    def after_map(self, route_map):
-        return route_map
