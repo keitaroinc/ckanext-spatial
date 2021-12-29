@@ -48,11 +48,8 @@
   display: none;
 }
 .dataset-map-expanded #dataset-map {
-  position: absolute;
-  width: 940px;
-  height: 384px;
-  top: -384px;
-  left: -1px;
+  position: flex;
+  width: 100%;
   background-color: white;
   border: 1px solid #CCC;
   margin: 0;
