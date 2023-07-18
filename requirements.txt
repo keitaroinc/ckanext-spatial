@@ -1,7 +1,7 @@
 ckantoolkit
 GeoAlchemy>=0.6
 GeoAlchemy2==0.5.0
-pyproj==2.6.1.post1
+pyproj
 Shapely>=1.2.13,<2.0.0
 OWSLib==0.18.0
 lxml>=2.3
