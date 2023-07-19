@@ -1,7 +1,4 @@
 ckantoolkit
-Cython
-pyproj==2.6.1; python_version < '3.9'
-pyproj==3.4.1; python_version >= '3.9'
 Shapely>=1.2.13,<2.0.0
 OWSLib==0.18.0
 lxml>=2.3
