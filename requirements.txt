@@ -1,11 +1,12 @@
 ckantoolkit
 GeoAlchemy>=0.6
 GeoAlchemy2==0.5.0
-Shapely>=1.2.13
+Shapely>=1.2.13,<2.0.0
+cython==0.29.36
 pyproj==2.6.1
-OWSLib==0.18.0
 lxml>=2.3
 argparse
 pyparsing>=2.1.10
 requests>=1.1.0
 six
+OWSLib==0.18.0
