@@ -28,3 +28,8 @@ e.g.
 
 {% set type = 'asset' if h.ckan_version().split('.')[1] | int >= 9 else 'resource' %}
 {% include 'spatial/snippets/spatial_query_' ~ type ~ '.html' %}
+
+<!-- Load Leaflet -->
+<script src="https://unpkg.com/leaflet@1.9.0/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-tilelayer-providers@1.9.0/dist/leaflet-tilelayer-providers.min.js"></script>
+<script src="{{ h.resource_url('ckanext-spatial:spatial_query.js') }}"></script>
